@@ -1,0 +1,39 @@
+#Function for computing ATE and VTE using one-step estimators
+#
+#df is a dataframe or tibble containing:
+#Y - outcome of interest
+#A - treatment indicator
+#pi_hat - estimate of the propensity score E(A|X)
+#mu1_hat - estimate of E(Y|A=1,X)
+#mu0_hat - estimate of E(Y|A=0,X)
+#CATE - (optional) Separate estimate of CATE. Defaults to CATE = mu1_hat-mu0_hat
+
+AIPW_VTE <- function(df,ab){
+  N <- NROW(df)
+  
+  if("CATE" %in% names(df)) {
+    CATE <- df$CATE
+  } else{
+    CATE <- with(df,mu1_hat - mu0_hat)  
+  }
+  PO <- with(df,(Y-mu0_hat-A*(mu1_hat - mu0_hat))*(A-pi_hat)/(pi_hat*(1-pi_hat))+ mu1_hat - mu0_hat)
+  
+  ATE <- sum(PO)/N
+  Sig1 <- sum(PO^2)/N - ATE^2
+  x <- PO-CATE
+  VTE <- Sig1 - sum(x^2)/N
+  Sig2 <- sum((CATE-ATE)^2*(CATE-ATE+2*x)^2)/N -VTE^2
+  
+  rootV <- ifelse(VTE>=0,sqrt(VTE),NA)
+  ss <- sqrt(Sig2/N)
+  out <- matrix(
+    c(ATE,sqrt(Sig1/N),
+      rootV,ss/rootV,
+      VTE,ss ),
+    ncol=2,byrow=TRUE)
+  rownames(out) <- c("ATE","rootVTE","VTE")
+  colnames(out) <- c("Estimate","Std_err")
+  return(out)
+}
+
+
