@@ -69,6 +69,7 @@ TMLE_VTE <- function(df,ab=NULL){
     }else{
       retarget <- FALSE
     }
+    it <- it+1
   }
   if(it>=max.it) warning("Max iterations reached in TMLE")
   
