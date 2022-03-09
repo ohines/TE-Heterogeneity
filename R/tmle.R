@@ -11,7 +11,7 @@
 
 TMLE_VTE <- function(df,ab=NULL){
   ## Some params
-  max.it <- 20 #maximum number of iterations in targetting step
+  max.it <- 600 #maximum number of iterations in targetting step
   eps <- 0.0001 #TMLE target step size
   
   
@@ -62,7 +62,7 @@ TMLE_VTE <- function(df,ab=NULL){
     Sig1 <- b1 - 2*a1*a0 + a0^2
     Sig2 <- sum(((po-a0)^2 -(po-cate)^2 - VTE)^2  )/N 
 
-    if( (N^2*pD1^2 >= Sig1) | (N^2*pD2^2 >= Sig1)){
+    if( (N^2*pD1^2 >= Sig1) | (N^2*pD2^2 >= Sig2)){
       q_1 <- plogis(qlogis(q_1)  + eps*beta1*(pD1+2*(cate-ATE)*pD2)/pD_norm )
       q_0 <- plogis(qlogis(q_0)  + eps*beta0*(pD1+2*(cate-ATE)*pD2)/pD_norm ) 
       
