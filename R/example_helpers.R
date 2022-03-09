@@ -30,6 +30,7 @@ fitMods <- function(df,df_train=df,outcome_family = gaussian()){
   )%>% return()
 }
 
+
 crossFit <- function(df,foldIDs,Nfolds=max(foldIDs)){
   fold_list = lapply(1:Nfolds, function(i,foldIDs){which(foldIDs==i)},foldIDs = foldIDs)
   

@@ -4,11 +4,12 @@ require(tidyverse)
 vte_filepath <- "R"
 glue::glue("{vte_filepath}/aipw.R") %>% source()
 glue::glue("{vte_filepath}/tmle.R") %>% source()
+glue::glue("{vte_filepath}/vte.R") %>% source()
 
 ### Construct some data I use the data in the example helpers file 
 glue::glue("{vte_filepath}/example_helpers.R") %>% source()
 
-set.seed(1234)
+set.seed(123456)
 N <- 500 #size of generated data
 df <- generate_data_simple(N)
 
@@ -34,13 +35,29 @@ print(df_xfit) #Note there is an additional FoldID column
 #These fitted data frames can be passed used to infer ATE and VTEs
 #We also infer the square-root of the VTE which is on the same scale as the ATE
 #Two methods are provided:
-#AIPW_VTE() uses one step bias correction estimators
-#TMLE_VTE() uses one TMLE
-AIPW_VTE(df_fit)
-TMLE_VTE(df_fit)
+# "AIPW" uses one step bias correction estimators
+# "TMLE" uses TMLE
+aipw_nocv <- VTE(df_fit,method="AIPW")
+tmle_nocv <- VTE(df_fit,method="TMLE")
+aipw_cv   <- VTE(df_xfit,method="AIPW")
+tmle_cv   <- VTE(df_xfit,method="TMLE")
 
-AIPW_VTE(df_xfit)
-TMLE_VTE(df_xfit)
+print(tmle_cv) #example of displaying the output
+
+#The method also returns the CATE model. e.g.
+#For the AIPW method the CATE is equivalent to the T-learner (by default)
+tibble(
+  TMLE_CATE = tmle_cv$CATE,
+  AIPW_CATE = aipw_cv$CATE, 
+  T_learner = df_xfit$mu1_hat-df_xfit$mu0_hat) 
+
+#For the TMLE the CATE is a targeted T-learner so that the following are equal
+mean(tmle_cv$CATE)
+tmle_cv$coef["ATE"]
+
+mean(tmle_cv$CATE^2) - mean(tmle_cv$CATE)^2
+tmle_cv$coef["VTE"]
+
 
 
 

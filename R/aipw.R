@@ -1,6 +1,6 @@
 #Function for computing ATE and VTE using one-step estimators
 #
-#df is a dataframe or tibble containing:
+#data is a dataframe or tibble containing:
 #Y - outcome of interest
 #A - treatment indicator
 #pi_hat - estimate of the propensity score E(A|X)
@@ -8,15 +8,15 @@
 #mu0_hat - estimate of E(Y|A=0,X)
 #CATE - (optional) Separate estimate of CATE. Defaults to CATE = mu1_hat-mu0_hat
 
-AIPW_VTE <- function(df,ab){
-  N <- NROW(df)
+AIPW_VTE <- function(data){
+  N <- NROW(data)
   
-  if("CATE" %in% names(df)) {
-    CATE <- df$CATE
+  if("CATE" %in% names(data)) {
+    CATE <- data$CATE
   } else{
-    CATE <- with(df,mu1_hat - mu0_hat)  
+    CATE <- with(data,mu1_hat - mu0_hat)  
   }
-  PO <- with(df,(Y-mu0_hat-A*(mu1_hat - mu0_hat))*(A-pi_hat)/(pi_hat*(1-pi_hat))+ mu1_hat - mu0_hat)
+  PO <- with(data,(Y-mu0_hat-A*(mu1_hat - mu0_hat))*(A-pi_hat)/(pi_hat*(1-pi_hat))+ mu1_hat - mu0_hat)
   
   ATE <- sum(PO)/N
   Sig1 <- sum(PO^2)/N - ATE^2
@@ -33,6 +33,19 @@ AIPW_VTE <- function(df,ab){
     ncol=2,byrow=TRUE)
   rownames(out) <- c("ATE","rootVTE","VTE")
   colnames(out) <- c("Estimate","Std_err")
+  
+  
+  
+  coef <- c(ATE,rootV,VTE)
+  std.err <- c(sqrt(Sig1/N),ss/rootV,ss)
+  names(coef) <- names(std.err) <- c("ATE","rootVTE","VTE")
+  
+  out<- list(
+    coef = coef,
+    std.err = std.err,
+    CATE = CATE
+  )
+  
   return(out)
 }
 
