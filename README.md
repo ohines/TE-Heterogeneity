@@ -65,7 +65,7 @@ columns:
 | `mu0_hat` | predicted outcome regression in the untreated *E*(*Y*\|*A*=0,*X*) |
 
 Often it is better to use cross fitted models (see e.g. CV-TMLE notes in
-Levy’s paper) This is implemented in the \`crossFit’ function which
+Levy’s paper) This is implemented in the `crossFit` function which
 essentially calls `fitmods` multiple times
 
 ``` r
