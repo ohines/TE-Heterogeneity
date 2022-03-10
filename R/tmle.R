@@ -14,28 +14,25 @@ TMLE_VTE <- function(data,ab=NULL){
   max.it <- 600 #maximum number of iterations in targetting step
   eps <- 0.0001 #TMLE target step size
   
-  if(!is.null(ab)){
-    a = ab[1]
-    b = ab[2]
-    if(a>b) {
-      warning("ab values incorrect - using default method")
-      ab <- NULL
-    }
-  }
-  if(is.null(ab)){
-    a = with(data,min(Y,mu1_hat,mu0_hat))
-    b = with(data,max(Y,mu1_hat,mu0_hat))
-  }
+  a <- with(data,min(Y,mu1_hat,mu0_hat))
+  b <- with(data,max(Y,mu1_hat,mu0_hat)) - a
   
+  if(!is.null(ab)){
+    if(ab[1]<=a & ab[2]>=(a+b)){
+      a <- ab[1]
+      b <- ab[2]-ab[1]
+    }else warning("ab values incorrect - using default method")
+  }
+
   N = NROW(data)
   A <- data$A
   beta1 <- with(data,  1/pi_hat )
   beta0 <- with(data,  1/(pi_hat-1) )
   beta <- ifelse(A,beta1,beta0)
-  y <- (data$Y -a)/(b-a)
+  y <- (data$Y -a)/b
 
-  expitq1 <- qlogis((data$mu1_hat-a)/(b-a))
-  expitq0 <- qlogis((data$mu0_hat-a)/(b-a))
+  expitq1 <- qlogis((data$mu1_hat-a)/b)
+  expitq0 <- qlogis((data$mu0_hat-a)/b)
   
   retarget <- TRUE
   it <- 1
@@ -76,23 +73,19 @@ TMLE_VTE <- function(data,ab=NULL){
   rootV <- ifelse(VTE>=0,sqrt(VTE),NA)
   ss <- sqrt(Sig2/N)
 
-  #out <- matrix(
-  #  c(ATE*(b-a),sqrt(Sig1/N)*(b-a),
-  #    rootV*(b-a),ss*(b-a)/rootV,
-  #    VTE*(b-a)^2,ss*(b-a)^2),
-  #  ncol=2,byrow=TRUE)
-  #rownames(out) <- c("ATE","rootVTE","VTE")
-  #colnames(out) <- c("Estimate","Std_err")
-  
-  coef <- c(ATE*(b-a),rootV*(b-a),VTE*(b-a)^2)
-  std.err <- c(sqrt(Sig1/N)*(b-a),ss*(b-a)/rootV,ss*(b-a)^2)
+  coef <- c(ATE*b,
+            rootV*b,
+            VTE*b*b)
+  std.err <- c(sqrt(Sig1/N)*b,
+               ss*b/rootV,
+               ss*b*b)
   names(coef) <- names(std.err) <- c("ATE","rootVTE","VTE")
   names(cate) <- NULL
   
   out<- list(
     coef = coef,
     std.err = std.err,
-    CATE = cate*(b-a)
+    CATE = cate*b
   )
   
   return(out)
