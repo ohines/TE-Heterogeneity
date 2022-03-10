@@ -1,0 +1,89 @@
+---
+title: "Treatment Effect Heterogeneity Methods"
+output:
+  github_document:
+    html_preview: FALSE
+---
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(comment = "#>", collapse = TRUE)
+```
+
+The purpose of this repository is to make recent tools for understanding treatment effect heterogeneity more accessible. This first commit contains R code for average treatment effect (ATE) and variance of treatment effect estimation (VTE), using both one-step bias correction, and targeted maximum likelihood estimation (TMLE). Example code is given below.
+
+Source required files
+
+```{r,message=FALSE}
+require(tidyverse)
+source("R/aipw.R")
+source("R/tmle.R")
+source("R/vte.R")
+source("R/example_helpers.R") #Used for the current examples
+```
+## Obtain intitial fits
+
+Construct some data I use the data in the example helpers file
+
+```{r}
+set.seed(1234)
+N <- 500 #size of generated data
+df <- generate_data_simple(N)
+```
+
+Next we will fit the working models We use the function `fitMods` in the example helpers file. At the moment the best way of modifying this code (e.g. to use other machine learning methods) is to write a new `fitMods` function. The existing `fitMods` function uses the `mgcv` package to fit GAM models. 
+
+```{r}
+df_fit <- fitMods(df)
+print(df_fit)
+```
+
+The `fitmods` function returns a data frame that has 5 necessary columns:
+
+|Column| Value|
+|---|---|
+`Y` | outcome of interest 
+`A` | treatment indicator 
+`pi_hat`  | predicted propensity score $E(A|X)$ 
+`mu1_hat` | predicted outcome regression in the treated $E(Y|A=1,X)$ 
+`mu0_hat` | predicted outcome regression in the untreated $E(Y|A=0,X)$
+
+Often it is better to use cross fitted models (see e.g. CV-TMLE notes in Levy's paper) This is implemented in the \`crossFit' function which essentially calls `fitmods` multiple times
+
+```{r}
+foldIDs <- getFoldIDs(N,Nfolds=5) #5 fold cross validation in this example
+df_xfit <- crossFit(df,foldIDs=foldIDs)
+print(df_xfit)
+```
+Note there is an additional `FoldID` column. This is currently not used for anything but may be useful in future.
+
+## Pass initial fits to estimators
+
+These fitted data frames can be passed used to infer ATE and VTEs We also infer the square-root of the VTE which is on the same scale as the ATE Two methods are provided: "AIPW" uses one step bias correction estimators "TMLE" uses TMLE
+
+```{r}
+aipw_nocv <- VTE(df_fit,method="AIPW")
+tmle_nocv <- VTE(df_fit,method="TMLE")
+aipw_cv   <- VTE(df_xfit,method="AIPW")
+tmle_cv   <- VTE(df_xfit,method="TMLE")
+
+print(tmle_cv) #example of displaying the output
+```
+
+The method also returns the CATE model. e.g. For the AIPW method the CATE is equivalent to the T-learner (by default)
+
+```{r}
+tibble(
+  TMLE_CATE = tmle_cv$CATE,
+  AIPW_CATE = aipw_cv$CATE, 
+  T_learner = df_xfit$mu1_hat-df_xfit$mu0_hat) 
+```
+
+For the TMLE the CATE is a targeted T-learner so that the following are equal
+
+```{r}
+mean(tmle_cv$CATE)
+tmle_cv$coef["ATE"]
+
+mean(tmle_cv$CATE^2) - mean(tmle_cv$CATE)^2
+tmle_cv$coef["VTE"]
+```
