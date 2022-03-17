@@ -26,16 +26,7 @@ AIPW_VTE <- function(data){
   
   rootV <- ifelse(VTE>=0,sqrt(VTE),NA)
   ss <- sqrt(Sig2/N)
-  out <- matrix(
-    c(ATE,sqrt(Sig1/N),
-      rootV,ss/rootV,
-      VTE,ss ),
-    ncol=2,byrow=TRUE)
-  rownames(out) <- c("ATE","rootVTE","VTE")
-  colnames(out) <- c("Estimate","Std_err")
-  
-  
-  
+
   coef <- c(ATE,rootV,VTE)
   std.err <- c(sqrt(Sig1/N),ss/rootV,ss)
   names(coef) <- names(std.err) <- c("ATE","rootVTE","VTE")
